@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Investment Recommendations - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Algorithmic Investment Recommendations</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Investment options matching the entered criteria via Data Structures & Algorithms (Priority Queue).</p>
+  </div>
+</div>
+
+<!-- Financial Disclosure Alert -->
+<div class="alert alert-info" style="margin-bottom: 1.5rem;">
+  <span>ℹ️ <strong>Financial Disclosure:</strong> {{ disclaimer }}</span>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Recommendations Cards -->
+  <div>
+    <!-- Criteria Selection & Live Tuning Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Adjust Recommendation Parameters</h3>
+      </div>
+
+      <form method="POST" action="{{ url_for('recommendations') }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="risk">Risk Profile</label>
+            <select class="form-select" id="risk" name="risk">
+              <option value="LOW" {% if selected_risk == 'LOW' %}selected{% endif %}>LOW (Conservative / Capital Preservation)</option>
+              <option value="MEDIUM" {% if selected_risk == 'MEDIUM' %}selected{% endif %}>MEDIUM (Balanced Growth)</option>
+              <option value="HIGH" {% if selected_risk == 'HIGH' %}selected{% endif %}>HIGH (Aggressive Equity Growth)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="duration">Investment Duration</label>
+            <select class="form-select" id="duration" name="duration">
+              <option value="SHORT" {% if selected_duration == 'SHORT' %}selected{% endif %}>SHORT (&lt; 1 Year)</option>
+              <option value="MEDIUM" {% if selected_duration == 'MEDIUM' %}selected{% endif %}>MEDIUM (1 - 3 Years)</option>
+              <option value="LONG" {% if selected_duration == 'LONG' %}selected{% endif %}>LONG (3+ Years)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="goal">Primary Financial Objective</label>
+            <select class="form-select" id="goal" name="goal">
+              <option value="Emergency Fund" {% if selected_goal == 'Emergency Fund' %}selected{% endif %}>Emergency Fund</option>
+              <option value="Education" {% if selected_goal == 'Education' %}selected{% endif %}>Education</option>
+              <option value="Vehicle" {% if selected_goal == 'Vehicle' %}selected{% endif %}>Vehicle / Car</option>
+              <option value="House" {% if selected_goal == 'House' %}selected{% endif %}>House Downpayment</option>
+              <option value="Wealth Creation" {% if selected_goal == 'Wealth Creation' %}selected{% endif %}>Wealth Creation</option>
+              <option value="Retirement" {% if selected_goal == 'Retirement' %}selected{% endif %}>Retirement</option>
+              <option value="Other" {% if selected_goal == 'Other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="capacity">Investment Amount / Capacity (₹)</label>
+            <input type="number" step="500" min="0" class="form-control" id="capacity" name="capacity" value="{{ selected_capacity }}" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Recalculate & Rank Options</button>
+      </form>
+    </div>
+
+    <!-- Ranked Recommendation Results -->
+    <div style="display: grid; gap: 1.25rem;">
+      {% if recommendations %}
+        {% for rec in recommendations %}
+        <div class="card rec-card">
+          <div class="rec-header">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <h3 style="font-size: 1.2rem; color: var(--secondary);">{{ rec.name }}</h3>
+                <span class="badge badge-neutral">Rank #{{ loop.index }}</span>
+              </div>
+              <span class="badge badge-{{ 'success' if rec.risk_level == 'LOW' else ('warning' if rec.risk_level == 'MEDIUM' else 'danger') }}">
+                {{ rec.risk_level }} RISK
+              </span>
+              <span class="badge badge-neutral">{{ rec.category }}</span>
+              <span class="badge badge-info">{{ rec.duration }} HORIZON</span>
+            </div>
+
+            <div style="text-align: right;">
+              <span class="rec-score-badge">{{ rec.score }} / 100</span>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Compatibility Score</div>
+            </div>
+          </div>
+
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0.75rem 0; line-height: 1.5;">
+            {{ rec.description }}
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.825rem; margin-bottom: 0.75rem;">
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">Minimum Amount:</span>
+              <div style="font-weight: 600;">₹{{ "{:,.0f}".format(rec.minimum_amount) }}</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">Indicative Rate:</span>
+              <div style="color: #10b981; font-weight: 600;">{{ rec.expected_return_information }}</div>
+            </div>
+            <div>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">Liquidity:</span>
+              <div style="font-weight: 600;">{{ rec.liquidity }}</div>
+            </div>
+          </div>
+
+          <!-- Explainability: Why this was selected -->
+          <div style="font-size: 0.85rem; font-weight: 600; color: var(--secondary); margin-bottom: 0.35rem;">
+            Why this investment option matched your criteria:
+          </div>
+          <ul class="rec-reasons">
+            {% for reason in rec.reasons %}
+            <li>{{ reason }}</li>
+            {% endfor %}
+          </ul>
+
+          <!-- Score Breakdown Badges -->
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; font-size: 0.725rem;">
+            <span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">Risk: {{ rec.score_breakdown.risk_score }}/30</span>
+            <span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">Amount: {{ rec.score_breakdown.amount_score }}/25</span>
+            <span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">Duration: {{ rec.score_breakdown.duration_score }}/20</span>
+            <span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">Goal: {{ rec.score_breakdown.goal_score }}/15</span>
+            <span style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">Liquidity: {{ rec.score_breakdown.liquidity_score }}/10</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="card" style="text-align: center; padding: 3rem;">
+          <p style="color: var(--text-muted);">No investment options matched the strict criteria combination. Try broadening your parameters.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Capacity Breakdown & DSA Architecture -->
+  <div>
+    <!-- Investment Capacity Breakdown -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Investment Capacity Breakdown</h3>
+      </div>
+
+      <div style="display: grid; gap: 0.75rem; font-size: 0.875rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Monthly Income:</span>
+          <strong>₹{{ "{:,.2f}".format(capacity_info.total_income) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-muted);">Monthly Expenses:</span>
+          <strong>₹{{ "{:,.2f}".format(capacity_info.total_expenses) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 0.5rem;">
+          <span style="color: var(--text-muted);">Net Monthly Surplus:</span>
+          <strong>₹{{ "{:,.2f}".format(capacity_info.monthly_surplus) }}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #f59e0b;">
+          <span>Emergency Buffer Reserve ({{ capacity_info.buffer_percentage }}%):</span>
+          <span>- ₹{{ "{:,.2f}".format(capacity_info.emergency_reserve) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; color: #ef4444;">
+          <span>Active Goal Obligations:</span>
+          <span>- ₹{{ "{:,.2f}".format(capacity_info.goal_commitments) }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 2px solid var(--border); padding-top: 0.5rem; font-size: 1.05rem;">
+          <strong>Safe Investment Capacity:</strong>
+          <strong style="color: #8b5cf6;">₹{{ "{:,.2f}".format(capacity_info.available_capacity) }}</strong>
+        </div>
+      </div>
+
+      <div style="margin-top: 1rem; padding: 0.75rem; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
+        {{ capacity_info.explanation }}
+      </div>
+    </div>
+
+    <!-- Technical Architecture & Ranking Engine -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">⚡ Algorithmic Ranking Blueprint</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.75rem;">
+        The recommendation pipeline uses a formal multi-factor optimization matrix:
+      </p>
+      <ul style="font-size: 0.8rem; color: var(--text-main); margin-left: 1.25rem; line-height: 1.6;">
+        <li><strong>Filtering:</strong> Eliminates assets exceeding risk ceiling and minimum entry barrier.</li>
+        <li><strong>Scoring:</strong> 5-dimensional compatibility matrix (Risk 30 + Amount 25 + Duration 20 + Goal 15 + Liquidity 10 = 100 max).</li>
+        <li><strong>Priority Queue (Max-Heap):</strong> Orders viable candidates with $O(\log n)$ insertion, then pops top-K recommendations in $O(k \log n)$ time.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
