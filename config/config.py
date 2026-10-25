@@ -4,7 +4,7 @@ Automatically loads environment variables from the single .env file.
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 
 # Base Directory of Project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,6 +32,23 @@ GOLD_API_KEY = os.getenv("GOLD_API_KEY", "").strip()
 NEWS_API_KEY = os.getenv("NEWS_API_KEY", "").strip()
 
 
+def get_api_key(name: str) -> str:
+    """Return the current key from ``.env`` without exposing it to callers.
+
+    The application used to capture credentials once when Python imported this
+    module.  Consequently, editing ``.env`` while the development server was
+    running left every API client using the old key until a restart.  Reading
+    just the requested value here lets a newly saved key take effect on the
+    next request.  Environment variables remain a fallback for deployments
+    that do not use a local ``.env`` file.
+    """
+    if ENV_PATH.exists():
+        value = dotenv_values(ENV_PATH).get(name)
+        if value is not None:
+            return value.strip()
+    return os.getenv(name, "").strip()
+
+
 def is_configured(api_key: str) -> bool:
     """Helper to check if an API key is provided and not a placeholder."""
     return bool(api_key and api_key != "YOUR_KEY_HERE" and len(api_key) > 3)
@@ -39,21 +56,24 @@ def is_configured(api_key: str) -> bool:
 
 def get_api_status() -> dict:
     """Get status overview of external API configurations."""
+    alpha_key = get_api_key("ALPHA_VANTAGE_API_KEY")
+    gold_key = get_api_key("GOLD_API_KEY")
+    news_key = get_api_key("NEWS_API_KEY")
     return {
         "alpha_vantage": {
             "name": "Alpha Vantage (Stock Market)",
-            "configured": is_configured(ALPHA_VANTAGE_API_KEY),
-            "key_present": bool(ALPHA_VANTAGE_API_KEY),
+            "configured": is_configured(alpha_key),
+            "key_present": bool(alpha_key),
         },
         "gold_api": {
             "name": "GoldAPI (Gold Rates)",
-            "configured": is_configured(GOLD_API_KEY),
-            "key_present": bool(GOLD_API_KEY),
+            "configured": is_configured(gold_key),
+            "key_present": bool(gold_key),
         },
         "news_api": {
             "name": "NewsAPI (Financial News)",
-            "configured": is_configured(NEWS_API_KEY),
-            "key_present": bool(NEWS_API_KEY),
+            "configured": is_configured(news_key),
+            "key_present": bool(news_key),
         },
         "mf_api": {
             "name": "MFAPI (Indian Mutual Funds)",
