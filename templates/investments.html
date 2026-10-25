@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Investment Catalog - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Investment Catalog</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Curated financial instruments spanning Fixed Income, Equities, Mutual Funds, and Sovereign Gold.</p>
+  </div>
+  <a href="{{ url_for('recommendations') }}" class="btn btn-primary btn-sm">🎯 View Tailored Recommendations</a>
+</div>
+
+<!-- DSA Filter & Search Toolbar -->
+<div class="card" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+  <form method="GET" action="{{ url_for('investments') }}">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: flex-end;">
+      <div>
+        <label class="form-label">Search Query (DSA)</label>
+        <input type="text" class="form-control" name="q" value="{{ query }}" placeholder="Search name or type...">
+      </div>
+
+      <div>
+        <label class="form-label">Risk Tolerance</label>
+        <select class="form-select" name="risk">
+          <option value="ALL" {% if risk == 'ALL' %}selected{% endif %}>All Risk Levels</option>
+          <option value="LOW" {% if risk == 'LOW' %}selected{% endif %}>Low Risk</option>
+          <option value="MEDIUM" {% if risk == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+          <option value="HIGH" {% if risk == 'HIGH' %}selected{% endif %}>High Risk</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Category</label>
+        <select class="form-select" name="category">
+          <option value="ALL" {% if category == 'ALL' %}selected{% endif %}>All Categories</option>
+          <option value="Fixed Deposit" {% if category == 'Fixed Deposit' %}selected{% endif %}>Fixed Deposit</option>
+          <option value="Mutual Fund" {% if category == 'Mutual Fund' %}selected{% endif %}>Mutual Fund</option>
+          <option value="Equity" {% if category == 'Equity' %}selected{% endif %}>Equity</option>
+          <option value="Gold" {% if category == 'Gold' %}selected{% endif %}>Gold</option>
+          <option value="Government Scheme" {% if category == 'Government Scheme' %}selected{% endif %}>Government Scheme</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Duration</label>
+        <select class="form-select" name="duration">
+          <option value="ALL" {% if duration == 'ALL' %}selected{% endif %}>All Durations</option>
+          <option value="SHORT" {% if duration == 'SHORT' %}selected{% endif %}>Short (&lt;1 yr)</option>
+          <option value="MEDIUM" {% if duration == 'MEDIUM' %}selected{% endif %}>Medium (1-3 yrs)</option>
+          <option value="LONG" {% if duration == 'LONG' %}selected{% endif %}>Long (3+ yrs)</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Sort By (DSA QuickSort)</label>
+        <select class="form-select" name="sort_by">
+          <option value="minimum_amount" {% if sort_by == 'minimum_amount' %}selected{% endif %}>Min Amount (Low to High)</option>
+          <option value="expected_return" {% if sort_by == 'expected_return' %}selected{% endif %}>Expected Yield (High to Low)</option>
+          <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
+        </select>
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Filter / Sort</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Investment Instruments Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+  {% for inv in investments %}
+  <div class="card" style="display: flex; flex-direction: column;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+      <h3 style="font-size: 1.1rem; color: var(--secondary);">{{ inv.name }}</h3>
+      <span class="badge badge-{{ 'success' if inv.risk_level == 'LOW' else ('warning' if inv.risk_level == 'MEDIUM' else 'danger') }}">
+        {{ inv.risk_level }} RISK
+      </span>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+      <span class="badge badge-neutral">{{ inv.category }}</span>
+      <span class="badge badge-info">{{ inv.duration }} HORIZON</span>
+      <span class="badge badge-neutral">Liquidity: {{ inv.liquidity }}</span>
+    </div>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted); flex: 1; margin-bottom: 1rem; line-height: 1.5;">
+      {{ inv.description }}
+    </p>
+
+    <div style="background: var(--surface-alt); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.825rem; border: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="color: var(--text-muted);">Minimum Commitment:</span>
+        <strong>₹{{ "{:,.0f}".format(inv.minimum_amount) }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="color: var(--text-muted);">Indicative Yield:</span>
+        <strong style="color: #10b981;">{{ inv.expected_return_information }}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: var(--text-muted);">Suitable Goal:</span>
+        <span>{{ inv.suitable_goal }}</span>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+    <p style="color: var(--text-muted);">No investment options found matching the selected filter criteria.</p>
+    <a href="{{ url_for('investments') }}" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">Reset Filters</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

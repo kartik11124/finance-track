@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Mutual Funds NAV - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Indian Mutual Funds Explorer</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Look up Net Asset Values (NAV) and fund schemes via MFAPI.in (No API Key Required).</p>
+  </div>
+  <span class="badge badge-success">Free Public API &bull; 100% Free</span>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Search & Results -->
+  <div>
+    <!-- Search Scheme Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Search Mutual Fund Schemes</h3>
+      </div>
+
+      <form method="GET" action="{{ url_for('mutual_funds') }}" style="display: flex; gap: 0.75rem;">
+        <input type="text" class="form-control" name="q" value="{{ search_query }}" placeholder="e.g. Parag Parikh, Nifty Index, HDFC, SBI, Small Cap" required>
+        <button type="submit" class="btn btn-primary">Search Schemes</button>
+      </form>
+    </div>
+
+    <!-- Active Scheme Details Card -->
+    {% if scheme_details %}
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title" style="font-size: 1.25rem;">{{ scheme_details.scheme_name }}</h3>
+          <span class="card-subtitle">Fund House: {{ scheme_details.fund_house }} &bull; Category: {{ scheme_details.category }}</span>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 1.85rem; font-weight: 700; color: #10b981;">
+            ₹{{ "{:,.2f}".format(scheme_details.nav) }}
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">As of {{ scheme_details.date }}</span>
+        </div>
+      </div>
+
+      {% if scheme_details.history %}
+      <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--secondary);">Recent NAV History (Last 10 Records)</h4>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>NAV (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in scheme_details.history %}
+            <tr>
+              <td>{{ h.date }}</td>
+              <td><strong>₹{{ h.nav }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Search Results List -->
+    {% if search_results %}
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Search Results for "{{ search_query }}"</h3>
+        <span class="card-subtitle">{{ search_results|length }} schemes found</span>
+      </div>
+
+      <div style="display: grid; gap: 0.65rem;">
+        {% for r in search_results %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.85rem; background: #f8fafc; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div style="font-size: 0.9rem; font-weight: 500; color: var(--secondary); max-width: 80%;">
+            {{ r.scheme_name }}
+          </div>
+          <a href="{{ url_for('mutual_funds', q=search_query, code=r.scheme_code) }}" class="btn btn-secondary btn-sm">
+            View NAV
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tracked Funds Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Tracked Mutual Funds in Database Cache</h3>
+        <span class="card-subtitle">Stored in SQLite</span>
+      </div>
+
+      {% if cached_funds %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Scheme Code</th>
+              <th>Scheme Name</th>
+              <th>Category</th>
+              <th>Latest NAV (₹)</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for f in cached_funds %}
+            <tr>
+              <td><code>{{ f.scheme_code }}</code></td>
+              <td><strong>{{ f.scheme_name }}</strong></td>
+              <td><span class="badge badge-neutral">{{ f.category or 'Mutual Fund' }}</span></td>
+              <td><strong style="color: #10b981;">₹{{ "{:,.2f}".format(f.nav) }}</strong></td>
+              <td>{{ f.date }}</td>
+              <td>
+                <a href="{{ url_for('mutual_funds', code=f.scheme_code) }}" class="btn btn-secondary btn-sm">View</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No funds cached in database yet.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Info -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">About MFAPI.in</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.75rem;">
+        MFAPI is a community-maintained open REST API offering daily updated Net Asset Value (NAV) records for all AMFI-registered mutual fund schemes across India.
+      </p>
+      <ul style="font-size: 0.8rem; color: var(--text-main); margin-left: 1.25rem; line-height: 1.6;">
+        <li>Requires <strong>ZERO API keys</strong> or authentication tokens.</li>
+        <li>Covers all open-ended equity, debt, and hybrid mutual fund houses (HDFC, SBI, ICICI, Parag Parikh, Nippon, Axis, Mirae).</li>
+        <li>Provides instant real historical NAV data points.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

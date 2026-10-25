@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile & Financial Settings{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Financial Profile & Preferences</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Configure your investment horizon, risk tolerance, and reserve parameters.</p>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Profile Form -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Risk & Horizon Configuration</h3>
+      </div>
+
+      <form method="POST" action="{{ url_for('profile') }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="risk_tolerance">Risk Tolerance Level *</label>
+            <select class="form-select" id="risk_tolerance" name="risk_tolerance" required>
+              <option value="LOW" {% if profile.risk_tolerance == 'LOW' %}selected{% endif %}>LOW (Focus on Capital Preservation & Fixed Returns)</option>
+              <option value="MEDIUM" {% if profile.risk_tolerance == 'MEDIUM' %}selected{% endif %}>MEDIUM (Balanced Mix of Equity & Debt)</option>
+              <option value="HIGH" {% if profile.risk_tolerance == 'HIGH' %}selected{% endif %}>HIGH (Aggressive Growth via Equities & Mutual Funds)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="investment_horizon">Target Investment Horizon *</label>
+            <select class="form-select" id="investment_horizon" name="investment_horizon" required>
+              <option value="SHORT" {% if profile.investment_horizon == 'SHORT' %}selected{% endif %}>SHORT (&lt; 1 Year / Liquid Needs)</option>
+              <option value="MEDIUM" {% if profile.investment_horizon == 'MEDIUM' %}selected{% endif %}>MEDIUM (1 to 3 Years / Intermediate Goals)</option>
+              <option value="LONG" {% if profile.investment_horizon == 'LONG' %}selected{% endif %}>LONG (3+ Years / Compounding & Wealth Creation)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="primary_goal">Primary Financial Objective *</label>
+            <select class="form-select" id="primary_goal" name="primary_goal" required>
+              <option value="Emergency Fund" {% if profile.primary_goal == 'Emergency Fund' %}selected{% endif %}>Emergency Fund</option>
+              <option value="Education" {% if profile.primary_goal == 'Education' %}selected{% endif %}>Higher Education</option>
+              <option value="Vehicle" {% if profile.primary_goal == 'Vehicle' %}selected{% endif %}>Vehicle / Car Purchase</option>
+              <option value="House" {% if profile.primary_goal == 'House' %}selected{% endif %}>House Downpayment</option>
+              <option value="Wealth Creation" {% if profile.primary_goal == 'Wealth Creation' %}selected{% endif %}>Long-term Wealth Creation</option>
+              <option value="Retirement" {% if profile.primary_goal == 'Retirement' %}selected{% endif %}>Retirement Planning</option>
+              <option value="Other" {% if profile.primary_goal == 'Other' %}selected{% endif %}>Other Personal Goal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="emergency_fund_months">Emergency Reserve Target (Months) *</label>
+            <input type="number" min="1" max="12" class="form-control" id="emergency_fund_months" name="emergency_fund_months" value="{{ profile.emergency_fund_months or 3 }}" required>
+            <small style="color: var(--text-muted); font-size: 0.75rem;">Protects 1-12 months of monthly expenses before allocating to risky assets.</small>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">Save Profile Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right Column: Account Info -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">User Account Details</h3>
+      </div>
+      <div style="display: grid; gap: 0.75rem; font-size: 0.875rem;">
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Full Name</span>
+          <strong>{{ user_info.name }}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Registered Email</span>
+          <strong>{{ user_info.email }}</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Member Since</span>
+          <span>{{ user_info.created_at }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

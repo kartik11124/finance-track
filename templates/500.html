@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}System Error - FinanceMan{% endblock %}
+
+{% block content %}
+<div style="max-width: 540px; margin: 4rem auto; text-align: center;">
+  <div class="card" style="padding: 3rem 2rem;">
+    <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">⚠️</div>
+    <h1 style="font-size: 1.75rem; color: var(--danger); margin-bottom: 0.5rem;">500 - Internal Service Notice</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.6;">
+      An unexpected internal condition occurred while processing this request. Our offline fallback systems ensure your financial data remains safe.
+    </p>
+    <div style="display: flex; justify-content: center; gap: 1rem;">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Return to Dashboard</a>
+      <a href="{{ url_for('status') }}" class="btn btn-secondary">View System Diagnostics</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

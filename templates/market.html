@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Market Watch - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Stock Market Watch</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Look up live and cached stock equity quotes powered by Alpha Vantage.</p>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Search & Active Stock Display -->
+  <div>
+    <!-- Stock Search Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">Search Stock Symbol</h3>
+      </div>
+
+      <form method="GET" action="{{ url_for('market') }}" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <input type="text" class="form-control" name="symbol" value="{{ symbol_query }}" placeholder="e.g. RELIANCE, TCS, INFY, HDFCBANK, AAPL" style="flex: 1; min-width: 220px;" required>
+        <button type="submit" class="btn btn-primary">Fetch Quote</button>
+      </form>
+
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; align-items: center;">
+        <span style="font-size: 0.8rem; color: var(--text-muted);">Quick lookups:</span>
+        {% for sym in default_symbols %}
+        <a href="{{ url_for('market', symbol=sym) }}" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;">
+          {{ sym }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Active Quote Result Card -->
+    {% if active_quote %}
+      {% if active_quote.error %}
+      <div class="alert alert-warning">
+        <span>⚠️ {{ active_quote.error }}</span>
+      </div>
+      {% else %}
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title" style="font-size: 1.5rem;">{{ active_quote.symbol }}</h3>
+            <span class="card-subtitle">Source: {{ active_quote.source }} &bull; Trading Day: {{ active_quote.latest_trading_day }}</span>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 2rem; font-weight: 700; color: var(--secondary);">
+              ₹{{ "{:,.2f}".format(active_quote.price) }}
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 600; color: {{ '#10b981' if (active_quote.change or 0) >= 0 else '#ef4444' }};">
+              {{ '+' if (active_quote.change or 0) >= 0 else '' }}{{ "{:,.2f}".format(active_quote.change or 0) }} ({{ active_quote.change_percent }})
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+          <div style="background: var(--surface-alt); border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius-sm);">
+            <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Previous Close</span>
+            <strong>₹{{ "{:,.2f}".format(active_quote.previous_close or active_quote.price) }}</strong>
+          </div>
+          <div style="background: var(--surface-alt); border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius-sm);">
+            <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Status</span>
+            <span class="badge badge-{{ 'warning' if active_quote.is_cached else 'success' }}">
+              {{ 'Cached Record' if active_quote.is_cached else 'Live Quote' }}
+            </span>
+          </div>
+          <div style="background: var(--surface-alt); border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius-sm);">
+            <span style="color: var(--text-muted); font-size: 0.75rem; display: block;">Trading Date</span>
+            <strong>{{ active_quote.latest_trading_day }}</strong>
+          </div>
+        </div>
+
+        {% if active_quote.notice %}
+        <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--warning); background: var(--warning-bg); padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid var(--warning);">
+          ℹ️ {{ active_quote.notice }}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- Cached Market Data Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Tracked Market Equities</h3>
+        <span class="card-subtitle">Stored in SQLite</span>
+      </div>
+
+      {% if cached_stocks %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Price (₹)</th>
+              <th>Prev Close</th>
+              <th>Change</th>
+              <th>% Change</th>
+              <th>Trading Day</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in cached_stocks %}
+            <tr>
+              <td><strong>{{ s.symbol }}</strong></td>
+              <td>₹{{ "{:,.2f}".format(s.price) }}</td>
+              <td>₹{{ "{:,.2f}".format(s.previous_close or s.price) }}</td>
+              <td style="color: {{ '#10b981' if (s.change or 0) >= 0 else '#ef4444' }};">
+                {{ '+' if (s.change or 0) >= 0 else '' }}{{ "{:,.2f}".format(s.change or 0) }}
+              </td>
+              <td style="color: {{ '#10b981' if (s.change or 0) >= 0 else '#ef4444' }}; font-weight: 600;">
+                {{ s.change_percent }}
+              </td>
+              <td>{{ s.latest_trading_day }}</td>
+              <td>
+                <a href="{{ url_for('market', symbol=s.symbol) }}" class="btn btn-secondary btn-sm">Refresh</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No tracked stocks in database cache.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: API & Integration Details -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">📡 Alpha Vantage Integration</h3>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 0.75rem;">
+        The system queries the official Alpha Vantage <code>GLOBAL_QUOTE</code> endpoint.
+      </p>
+      <ul style="font-size: 0.8rem; color: var(--text-main); margin-left: 1.25rem; line-height: 1.6; margin-bottom: 0.75rem;">
+        <li>Configured in single <code>.env</code> file via <code>ALPHA_VANTAGE_API_KEY</code>.</li>
+        <li>Automatic fallback: if rate limits occur (5 requests/minute on free tier) or keys are unconfigured, data seamlessly defaults to last cached SQLite record.</li>
+        <li>Zero fake prices: values represent authenticated API responses or cached transactions.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

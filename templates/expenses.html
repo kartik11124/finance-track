@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Expense Management - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Expense Management</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Track, categorize, and control your day-to-day spending.</p>
+  </div>
+  <div class="card" style="padding: 0.75rem 1.25rem; display: inline-flex; align-items: center; gap: 0.75rem;">
+    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Total Outflows:</span>
+    <span style="font-size: 1.35rem; font-weight: 700; color: #ef4444;">₹{{ "{:,.2f}".format(total_expenses) }}</span>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Add Expense Form & List -->
+  <div>
+    <!-- Add Expense Form -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">+ Record New Expense</h3>
+      </div>
+
+      <form method="POST" action="{{ url_for('expenses') }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="amount">Amount (₹) *</label>
+            <input type="number" step="0.01" min="1" class="form-control" id="amount" name="amount" placeholder="e.g. 3500" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="category">Category *</label>
+            <select class="form-select" id="category" name="category" required>
+              {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="date">Transaction Date *</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Notes / Description</label>
+            <input type="text" class="form-control" id="description" name="description" placeholder="e.g. Weekly grocery shopping">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Expense Record</button>
+      </form>
+    </div>
+
+    <!-- Expense History Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Expense History</h3>
+        <span class="card-subtitle">{{ expense_entries|length }} Records Logged</span>
+      </div>
+
+      {% if expense_entries %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th>Amount (₹)</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in expense_entries %}
+            <tr>
+              <td>{{ item.date }}</td>
+              <td><span class="badge badge-neutral">{{ item.category }}</span></td>
+              <td>{{ item.description or '—' }}</td>
+              <td><strong style="color: #ef4444;">₹{{ "{:,.2f}".format(item.amount) }}</strong></td>
+              <td style="text-align: right;">
+                <form method="POST" action="{{ url_for('delete_expense_route', expense_id=item.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-danger btn-sm" title="Delete record">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+        No expenses recorded yet.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Category Breakdown Table -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Category Breakdown</h3>
+      </div>
+
+      {% if category_totals %}
+      <div style="display: grid; gap: 0.75rem;">
+        {% for cat in category_totals %}
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong>{{ cat.category }}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ cat.count }} transactions</div>
+          </div>
+          <div style="font-weight: 700; color: var(--secondary);">
+            ₹{{ "{:,.2f}".format(cat.total) }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.5rem;">
+        Add expenses to view category-wise distribution.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const dateInput = document.getElementById("date");
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split("T")[0];
+    }
+  });
+</script>
+{% endblock %}

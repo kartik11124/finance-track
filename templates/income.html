@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Income Management - Smart Personal Finance System{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.75rem; color: var(--secondary);">Income Management</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem;">Record and monitor your monthly earnings and revenue streams.</p>
+  </div>
+  <div class="card" style="padding: 0.75rem 1.25rem; display: inline-flex; align-items: center; gap: 0.75rem;">
+    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Total Income:</span>
+    <span style="font-size: 1.35rem; font-weight: 700; color: #10b981;">₹{{ "{:,.2f}".format(total_income) }}</span>
+  </div>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Left Column: Add Income Form -->
+  <div>
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3 class="card-title">+ Record New Income</h3>
+      </div>
+
+      <form method="POST" action="{{ url_for('income') }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="amount">Amount (₹) *</label>
+            <input type="number" step="0.01" min="1" class="form-control" id="amount" name="amount" placeholder="e.g. 50000" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="source">Income Source *</label>
+            <select class="form-select" id="source" name="source" required>
+              <option value="Salary">Salary / Primary Employment</option>
+              <option value="Freelancing">Freelancing / Side Hustle</option>
+              <option value="Business">Business / Commercial</option>
+              <option value="Investments">Investment / Dividend / Interest</option>
+              <option value="Rental">Rental Property</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="date">Transaction Date *</label>
+            <input type="date" class="form-control" id="date" name="date" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="description">Notes / Description</label>
+            <input type="text" class="form-control" id="description" name="description" placeholder="e.g. Monthly tech salary credited">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Income Record</button>
+      </form>
+    </div>
+
+    <!-- Income History Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Income History</h3>
+        <span class="card-subtitle">{{ income_entries|length }} Records Logged</span>
+      </div>
+
+      {% if income_entries %}
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Source</th>
+              <th>Description</th>
+              <th>Amount (₹)</th>
+              <th style="text-align: right;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in income_entries %}
+            <tr>
+              <td>{{ item.date }}</td>
+              <td><span class="badge badge-success">{{ item.source }}</span></td>
+              <td>{{ item.description or '—' }}</td>
+              <td><strong>₹{{ "{:,.2f}".format(item.amount) }}</strong></td>
+              <td style="text-align: right;">
+                <form method="POST" action="{{ url_for('delete_income_route', income_id=item.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-danger btn-sm" title="Delete record">Delete</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+        No income records found. Add your first salary or revenue above.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Quick Guidance -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">💡 Financial Rule</h3>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+        Accurate income tracking forms the base of your <strong>Available Investment Capacity</strong>.
+        The system automatically computes your net cash surplus after deducting expenses,
+        preserving an emergency fund buffer and allocating savings to ongoing goals.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Set default date input to today
+  document.addEventListener("DOMContentLoaded", function() {
+    const dateInput = document.getElementById("date");
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split("T")[0];
+    }
+  });
+</script>
+{% endblock %}
