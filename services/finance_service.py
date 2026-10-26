@@ -91,14 +91,17 @@ def get_user_income_list(user_id: int) -> List[Dict[str, Any]]:
     )
 
 
-def get_total_income(user_id: int) -> float:
-    """Calculate total accumulated income for user."""
-    row = execute_one(
-        "SELECT COALESCE(SUM(amount), 0.0) as total FROM income WHERE user_id = ?;",
-        (user_id,)
-    )
-    return float(row["total"]) if row else 0.0
+def get_total_income(user_id: int, month: Optional[str] = None) -> float:
+    """Calculate total income, optionally filtered by YYYY-MM month."""
+    sql = "SELECT COALESCE(SUM(amount), 0.0) as total FROM income WHERE user_id = ?"
+    params = [user_id]
 
+    if month:
+        sql += " AND substr(date, 1, 7) = ?"
+        params.append(month)
+
+    row = execute_one(sql + ";", tuple(params))
+    return float(row["total"]) if row else 0.0
 
 # ==================== EXPENSE OPERATIONS ====================
 
