@@ -3,6 +3,7 @@ Flask Application Entrypoint & Web Routing.
 """
 
 from functools import wraps
+from datetime import datetime
 from flask import (
     Flask,
     flash,
@@ -140,13 +141,20 @@ def logout():
 @login_required
 def dashboard():
     user_id = session["user_id"]
-    dashboard_data = get_dashboard_data(user_id)
+
+    selected_month = request.args.get(
+        "month",
+        datetime.now().strftime("%Y-%m")
+    )
+
+    dashboard_data = get_dashboard_data(user_id, selected_month)
+
     return render_template(
         "dashboard.html",
         user_name=session.get("user_name", "User"),
-        data=dashboard_data
+        data=dashboard_data,
+        selected_month=selected_month
     )
-
 
 # ==================== INCOME MANAGEMENT ====================
 
