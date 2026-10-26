@@ -186,27 +186,37 @@ def get_user_expense_list(user_id: int) -> List[Dict[str, Any]]:
     )
 
 
-def get_total_expenses(user_id: int) -> float:
-    """Calculate total accumulated expenses for user."""
-    row = execute_one(
-        "SELECT COALESCE(SUM(amount), 0.0) as total FROM expenses WHERE user_id = ?;",
-        (user_id,)
-    )
+def get_total_expenses(user_id: int, month: Optional[str] = None) -> float:
+    """Calculate total expenses, optionally filtered by YYYY-MM month."""
+    sql = "SELECT COALESCE(SUM(amount), 0.0) as total FROM expenses WHERE user_id = ?"
+    params = [user_id]
+
+    if month:
+        sql += " AND substr(date, 1, 7) = ?"
+        params.append(month)
+
+    row = execute_one(sql + ";", tuple(params))
     return float(row["total"]) if row else 0.0
 
-
-def get_category_expenses(user_id: int) -> List[Dict[str, Any]]:
-    """Get category-wise breakdown of expenses for charts and reporting."""
-    rows = execute_query(
-        """
+def get_category_expenses(user_id: int, month: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get category-wise expense totals, optionally filtered by YYYY-MM month."""
+    sql = """
         SELECT category, COALESCE(SUM(amount), 0.0) as total, COUNT(*) as count
         FROM expenses
         WHERE user_id = ?
+    """
+    params = [user_id]
+
+    if month:
+        sql += " AND substr(date, 1, 7) = ?"
+        params.append(month)
+
+    sql += """
         GROUP BY category
         ORDER BY total DESC;
-        """,
-        (user_id,)
-    )
+    """
+
+    rows = execute_query(sql, tuple(params))
     return [dict(r) for r in rows]
 
 
@@ -277,14 +287,20 @@ def get_user_budgets(user_id: int) -> List[Dict[str, Any]]:
     )
 
 
-def get_budget_comparison(user_id: int) -> List[Dict[str, Any]]:
-    """Compare budgeted amount vs actual spent for each category.
-    Classifies status as Under Budget (<80%), Near Limit (80-100%), Over Budget (>100%).
-    """
+def get_budget_comparison(
+    user_id: int,
+    month: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Compare budgeted amount vs actual spent for each category."""
     budgets = get_user_budgets(user_id)
-    category_expenses = {r["category"]: float(r["total"]) for r in get_category_expenses(user_id)}
+
+    category_expenses = {
+        r["category"]: float(r["total"])
+        for r in get_category_expenses(user_id, month)
+    }
 
     comparison = []
+
     for b in budgets:
         cat = b["category"]
         budgeted = float(b["amount"])
@@ -313,8 +329,8 @@ def get_budget_comparison(user_id: int) -> List[Dict[str, Any]]:
             "status": status,
             "badge_class": badge_class
         })
-    return comparison
 
+    return comparison
 
 # ==================== FINANCIAL GOALS ====================
 
@@ -424,10 +440,13 @@ def get_user_goals(user_id: int) -> List[Dict[str, Any]]:
 
 # ==================== SUMMARY & ARITHMETIC ====================
 
-def get_financial_summary(user_id: int) -> Dict[str, Any]:
-    """Calculate aggregate financial health metrics for user."""
-    total_income = get_total_income(user_id)
-    total_expenses = get_total_expenses(user_id)
+def get_financial_summary(
+    user_id: int,
+    month: Optional[str] = None
+) -> Dict[str, Any]:
+    """Calculate aggregate financial health metrics for a selected month."""
+    total_income = get_total_income(user_id, month)
+    total_expenses = get_total_expenses(user_id, month)
     total_savings = round(total_income - total_expenses, 2)
 
     savings_rate = 0.0
@@ -435,16 +454,22 @@ def get_financial_summary(user_id: int) -> Dict[str, Any]:
         savings_rate = round((total_savings / total_income) * 100, 1)
 
     # Budget totals
-    budget_comparison = get_budget_comparison(user_id)
+    budget_comparison = get_budget_comparison(user_id, month)
     total_budgeted = sum(b["budgeted"] for b in budget_comparison)
     total_budget_spent = sum(b["spent"] for b in budget_comparison)
+
     budget_usage_pct = 0.0
     if total_budgeted > 0:
-        budget_usage_pct = round((total_budget_spent / total_budgeted) * 100, 1)
+        budget_usage_pct = round(
+            (total_budget_spent / total_budgeted) * 100,
+            1
+        )
 
     # Goals totals
     goals = get_user_goals(user_id)
-    total_goal_monthly_req = sum(g["monthly_contribution"] for g in goals)
+    total_goal_monthly_req = sum(
+        g["monthly_contribution"] for g in goals
+    )
 
     has_financial_data = (total_income > 0 or total_expenses > 0)
 
