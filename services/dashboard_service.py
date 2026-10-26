@@ -3,7 +3,7 @@ Aggregates live SQLite metrics, external API data, and algorithmic recommendatio
 for the central dashboard view. Ensures real data, zero fake values, and clean empty states.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from api.alpha_vantage import get_all_cached_stocks
 from api.gold_api import fetch_gold_price
 from api.news_api import fetch_financial_news
@@ -15,29 +15,30 @@ from services.finance_service import (
 )
 from services.recommendation_service import calculate_investment_capacity, get_personalized_recommendations
 
-
-def get_dashboard_data(user_id: int) -> Dict[str, Any]:
-    """Compiles complete dashboard payload for the specified user."""
-    summary = get_financial_summary(user_id)
+def get_dashboard_data(
+    user_id: int,
+    month: Optional[str] = None
+) -> Dict[str, Any]:
+    """Compile dashboard data for the selected YYYY-MM month."""
+    summary = get_financial_summary(user_id, month)
     capacity_info = calculate_investment_capacity(user_id)
-    category_expenses = get_category_expenses(user_id)
-    budget_comparison = get_budget_comparison(user_id)
+    category_expenses = get_category_expenses(user_id, month)
+    budget_comparison = get_budget_comparison(user_id, month)
     goals = get_user_goals(user_id)
 
-    # Recommendations (Top 3 for dashboard quick glance)
+    # Recommendations: top 3 shown on dashboard
     rec_payload = get_personalized_recommendations(user_id)
     top_recommendations = rec_payload["recommendations"][:3]
 
-    # External APIs
+    # External API data
     gold_data = fetch_gold_price()
     market_stocks = get_all_cached_stocks()
     news_payload = fetch_financial_news(limit=3)
 
-    # Prepare chart-ready JSON structures
+    # Chart data
     chart_category_labels = [c["category"] for c in category_expenses]
     chart_category_data = [c["total"] for c in category_expenses]
 
-    # Budget chart data
     budget_labels = [b["category"] for b in budget_comparison]
     budget_allocated = [b["budgeted"] for b in budget_comparison]
     budget_spent = [b["spent"] for b in budget_comparison]
@@ -65,4 +66,5 @@ def get_dashboard_data(user_id: int) -> Dict[str, Any]:
         },
         "has_financial_data": summary["has_financial_data"],
         "user_profile": rec_payload["user_profile"],
+        "selected_month": month,
     }
