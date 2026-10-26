@@ -7,6 +7,24 @@
   <div>
     <h1 style="font-size: 1.75rem; color: var(--secondary);">Financial Dashboard</h1>
     <p style="color: var(--text-muted); font-size: 0.95rem;">Real-time overview of your income, expenses, budget, and investments.</p>
+    <form method="GET" action="{{ url_for('dashboard') }}" style="margin-top: 0.75rem;">
+  <label for="month" style="font-size: 0.85rem; font-weight: 600;">
+    View Financial Month:
+  </label>
+
+  <input
+    type="month"
+    id="month"
+    name="month"
+    value="{{ selected_month }}"
+    class="form-control"
+    style="display: inline-block; width: auto; margin-left: 0.5rem;"
+  >
+
+  <button type="submit" class="btn btn-primary btn-sm">
+    Apply Filter
+  </button>
+</form>
   </div>
   <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
     <a href="{{ url_for('income') }}" class="btn btn-secondary btn-sm">+ Add Income</a>
